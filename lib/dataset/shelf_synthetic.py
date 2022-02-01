@@ -129,6 +129,7 @@ class ShelfSynthetic(Dataset):
                 joints_3d[n][:, :2] = new_xy
 
         input, target_heatmap, target_weight, target_3d, meta, input_heatmap = [], [], [], [], [], []
+        # why are we storing K copies of the 3d targets...
         for k, cam in self.cameras.items():
             i, th, tw, t3, m, ih = self._get_single_view_item(joints_3d, joints_3d_vis, cam)
             input.append(i)

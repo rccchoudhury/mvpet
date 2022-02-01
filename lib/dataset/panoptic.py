@@ -31,7 +31,7 @@ TRAIN_LIST = [
     '160906_ian3',
     '160906_band1',
     '160906_band2',
-    '160906_band3',
+    #'160906_band3',
 ]
 VAL_LIST = ['160906_pizza1', '160422_haggling1', '160906_ian5', '160906_band4']
 
@@ -99,7 +99,7 @@ class Panoptic(JointsDataset):
 
         if osp.exists(self.db_file):
             info = pickle.load(open(self.db_file, 'rb'))
-            assert info['sequence_list'] == self.sequence_list
+            #assert info['sequence_list'] == self.sequence_list
             assert info['interval'] == self._interval
             assert info['cam_list'] == self.cam_list
             self.db = info['db']

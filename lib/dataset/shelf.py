@@ -17,6 +17,10 @@ import copy
 import os
 from collections import OrderedDict
 
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 from dataset.JointsDataset import JointsDataset
 from utils.cameras_cpu import project_pose
 
@@ -54,7 +58,7 @@ LIMBS = [
     [12, 13]
 ]
 
-
+colors = ['r', 'g', 'b', 'y']
 class Shelf(JointsDataset):
     def __init__(self, cfg, image_set, is_train, transform=None):
         self.pixel_std = 200.0
@@ -178,14 +182,29 @@ class Shelf(JointsDataset):
         bone_correct_parts = np.zeros((num_person, 10))
 
         for i, fi in enumerate(self.frame_range):
+            if i > 50: 
+                break
+            #print("num person : % d " % num_person)
             pred_coco = preds[i].copy()
             pred_coco = pred_coco[pred_coco[:, 0, 3] >= 0, :, :3]
             pred = np.stack([self.coco2shelf3D(p) for p in copy.deepcopy(pred_coco[:, :, :3])])
+
+            # Setup figure. 
+            fig = plt.figure()
+            ax = plt.axes(projection='3d')
 
             for person in range(num_person):
                 gt = actor_3d[person][fi] * 1000.0
                 if len(gt[0]) == 0:
                     continue
+                #print("gt shape : " + str(gt.shape))
+            
+                for j1, j2 in LIMBS:
+                    x = [float(gt[j1, 0]), float(gt[j2, 0])]
+                    y = [float(gt[j1, 1]), float(gt[j2, 1])]
+                    z = [float(gt[j1, 2]), float(gt[j2, 2])]
+                    ax.plot(x, y, z, c=colors[person], ls='--', lw=1.5, marker='o', markerfacecolor='w', markersize=2,
+                            markeredgewidth=1)
 
                 mpjpes = np.mean(np.sqrt(np.sum((gt[np.newaxis] - pred) ** 2, axis=-1)), axis=-1)
                 min_n = np.argmin(mpjpes)
@@ -211,6 +230,10 @@ class Shelf(JointsDataset):
                 if (error_s + error_e) / 2.0 <= alpha * limb_length:
                     correct_parts[person] += 1
                     bone_correct_parts[person, 9] += 1
+            # Do the plot
+            plt.savefig(osp.join("video_viz", "image_%d.png" % fi))
+            plt.close(fig)
+
 
         actor_pcp = correct_parts / (total_parts + 1e-8)
         avg_pcp = np.mean(actor_pcp[:3])

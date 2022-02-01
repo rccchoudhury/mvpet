@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import os
 import logging
+import time
 
 import torch
 import torch.nn as nn
@@ -237,6 +238,7 @@ class PoseResNet(nn.Module):
                     nn.init.normal_(m.weight, std=0.001)
                     nn.init.constant_(m.bias, 0)
         else:
+            start_time = time.time()
             logger.info('=> init weights from normal distribution')
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
@@ -250,6 +252,7 @@ class PoseResNet(nn.Module):
                     nn.init.normal_(m.weight, std=0.001)
                     if self.deconv_with_bias:
                         nn.init.constant_(m.bias, 0)
+            logger.info("Took %.3f to finish initing weights." % (time.time() - start_time))
 
 
 resnet_spec = {18: (BasicBlock, [2, 2, 2, 2]),

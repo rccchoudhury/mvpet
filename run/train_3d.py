@@ -7,19 +7,21 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+#os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3, 4, 5"
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import torch.utils.data
-import torch.utils.data.distributed
 import torchvision.transforms as transforms
 from tensorboardX import SummaryWriter
 import argparse
-import os
 import pprint
 import logging
 import json
+import time
 
 import _init_paths
 from core.config import config
@@ -66,6 +68,8 @@ def main():
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
 
+    #torch.cuda.set_device("cuda:2")
+
     gpus = [int(i) for i in config.GPUS.split(',')]
     print('=> Loading data ..')
     normalize = transforms.Normalize(
@@ -105,9 +109,16 @@ def main():
     print('=> Constructing models ..')
     model = eval('models.' + config.MODEL + '.get_multi_person_pose_net')(
         config, is_train=True)
+    
+    logger.info("Setting data parallel with gpus: " + str(gpus))
+    #logger.info("Resetting the gpus array to [0, 1]")
+    gpus=[0]
+    start_time = time.time()
     with torch.no_grad():
         model = torch.nn.DataParallel(model, device_ids=gpus).cuda()
-
+    #model = model.to(torch.device("cuda:0"))
+    logger.info("Took %.3f to set up data parallel" % (time.time() - start_time))
+    logger.info("Getting optimizer ... ")
     model, optimizer = get_optimizer(model)
 
     start_epoch = config.TRAIN.BEGIN_EPOCH
@@ -115,7 +126,10 @@ def main():
 
     best_precision = 0
     if config.NETWORK.PRETRAINED_BACKBONE:
+        logger.info("loading panoptic backbone")
+        panoptic_load_start_time = time.time()
         model = load_backbone_panoptic(model, config.NETWORK.PRETRAINED_BACKBONE)
+        logger.info("Took %.3f to load panoptic backbone." % (time.time() - panoptic_load_start_time))
     if config.TRAIN.RESUME:
         start_epoch, model, optimizer, best_precision = load_checkpoint(model, optimizer, final_output_dir)
 

@@ -77,6 +77,7 @@ def main():
     print('=> Constructing models ..')
     model = eval('models.' + config.MODEL + '.get_multi_person_pose_net')(
         config, is_train=True)
+    #gpus = [0, 1]
     with torch.no_grad():
         model = torch.nn.DataParallel(model, device_ids=gpus).cuda()
 

@@ -147,14 +147,17 @@ LIMBS15 = [[0, 1], [0, 2], [0, 3], [3, 4], [4, 5], [0, 9], [9, 10],
 LIMBS17 = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [7, 9], [6, 8], [8, 10], [5, 11], [11, 13], [13, 15],
         [6, 12], [12, 14], [14, 16], [5, 6], [11, 12]]
 
-# shelf / campus
-LIMBS14 = [[0, 1], [1, 2], [3, 4], [4, 5], [2, 3], [6, 7], [7, 8], [9, 10],
-          [10, 11], [2, 8], [3, 9], [8, 12], [9, 12], [12, 13]]
+    # shelf / campus
+    LIMBS14 = [[0, 1], [1, 2], [3, 4], [4, 5], [2, 3], [6, 7], [7, 8], [9, 10],
+            [10, 11], [2, 8], [3, 9], [8, 12], [9, 12], [12, 13]]
 
 
-def save_debug_3d_images(config, meta, preds, prefix):
+
+def save_debug_3d_images(config, meta, preds, prefix, file_path=None):
     if not config.DEBUG.DEBUG:
         return
+
+    #joints = 3d poisions
 
     basename = os.path.basename(prefix)
     dirname = os.path.dirname(prefix)
@@ -165,7 +168,8 @@ def save_debug_3d_images(config, meta, preds, prefix):
 
     prefix = os.path.join(dirname1, basename)
     file_name = prefix + "_3d.png"
-
+    if file_path is not None:
+        file_name = file_path
     # preds = preds.cpu().numpy()
     batch_size = meta['num_person'].shape[0]
     xplot = min(4, batch_size)

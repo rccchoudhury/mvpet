@@ -120,6 +120,8 @@ def load_backbone_panoptic(model, pretrained_file):
 
     prefix = "module."
     new_pretrained_state_dict = {}
+    start_time = time.time()
+    logging.info("Loading panoptic backbone...")
     for k, v in pretrained_state_dict.items():
         if k.replace(prefix, "") in model_state_dict and v.shape == model_state_dict[k.replace(prefix, "")].shape:
             new_pretrained_state_dict[k.replace(prefix, "")] = v
@@ -140,6 +142,7 @@ def load_backbone_panoptic(model, pretrained_file):
             o[:n_filters] = v[:n_filters]
 
             new_pretrained_state_dict[k.replace(prefix, "")] = o
+    logging.info("Finished loading panoptic backbone in %.3f" % (time.time() - start_time))
     logging.info("load backbone statedict from {}".format(pretrained_file))
     model.module.backbone.load_state_dict(new_pretrained_state_dict)
 
