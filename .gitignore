@@ -39,6 +39,7 @@ pip-delete-this-directory.txt
 # Images and videos
 *.avi
 *.png
+*.jpg
 
 # large files (should use LFS)
 *.pkl
