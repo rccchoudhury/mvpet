@@ -5,7 +5,7 @@ CUDNN:
 BACKBONE_MODEL: 'pose_resnet'
 MODEL: 'multi_person_posenet'
 DATA_DIR: ''
-GPUS: '1'
+GPUS: '6'
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
 WORKERS: 10
@@ -24,7 +24,7 @@ DATASET:
   TEST_SUBSET: 'validation'
   TRAIN_SUBSET: 'train'
   ROOTIDX: 2
-  CAMERA_NUM: 5
+  CAMERA_NUM: 3
 NETWORK:
   PRETRAINED_BACKBONE: "models/pose_resnet50_panoptic.pth.tar"
   PRETRAINED:  ''  # 'models/pytorch/imagenet/resnet50-19c8e357.pth'

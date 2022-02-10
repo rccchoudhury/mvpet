@@ -127,6 +127,9 @@ def validate_3d(config, model, loader, output_dir):
         end = time.time()
         for i, (inputs, targets_2d, weights_2d, targets_3d, meta, input_heatmap) in enumerate(loader):
             data_time.update(time.time() - end)
+            #if i > 2:
+            #    break
+            
             if 'panoptic' in config.DATASET.TEST_DATASET:
                 pred, heatmaps, grid_centers, _, _, _ = model(views=inputs, meta=meta, targets_2d=targets_2d,
                                                               weights_2d=weights_2d, targets_3d=targets_3d[0])
@@ -165,12 +168,14 @@ def validate_3d(config, model, loader, output_dir):
     metric = None
     if 'panoptic' in config.DATASET.TEST_DATASET:
         aps, _, mpjpe, recall = loader.dataset.evaluate(preds)
-        msg = 'ap@25: {aps_25:.4f}\tap@50: {aps_50:.4f}\tap@75: {aps_75:.4f}\t' \
-              'ap@100: {aps_100:.4f}\tap@125: {aps_125:.4f}\tap@150: {aps_150:.4f}\t' \
-              'recall@500mm: {recall:.4f}\tmpjpe@500mm: {mpjpe:.3f}'.format(
+        thresholds = loader.dataset.ap_thresholds
+        msg = 'ap@{thresh_1: d}: {aps_25:.4f}\tap@{thresh_2: d}: {aps_50:.4f}\tap@{thresh_3:d}: {aps_75:.4f}\t' \
+              'ap@{thresh_4: d}: {aps_100:.4f}\tap@{thresh_5: d}: {aps_125:.4f}\tap@{thresh_6:d}: {aps_150:.4f}\t' \
+              'recall@500mm: {recall:.4f}\tmpjpe@500: {mpjpe:.3f}'.format(
                 aps_25=aps[0], aps_50=aps[1], aps_75=aps[2], aps_100=aps[3],
-                aps_125=aps[4], aps_150=aps[5], recall=recall, mpjpe=mpjpe
-              )
+                aps_125=aps[4], aps_150=aps[5], recall=recall, mpjpe=mpjpe, 
+                thresh_1=thresholds[0], thresh_2=thresholds[1], thresh_3=thresholds[2],
+                thresh_4=thresholds[3], thresh_5=thresholds[4], thresh_6=thresholds[5])
         logger.info(msg)
         metric = np.mean(aps)
     elif 'campus' in config.DATASET.TEST_DATASET or 'shelf' in config.DATASET.TEST_DATASET:

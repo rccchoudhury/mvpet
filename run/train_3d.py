@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3, 4, 5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import torch
 import torch.nn as nn
@@ -70,8 +70,11 @@ def main():
 
     #torch.cuda.set_device("cuda:2")
 
-    gpus = [int(i) for i in config.GPUS.split(',')]
+    #gpus = [int(i) for i in config.GPUS.split(',')]
+    gpus=[int(i) for i in range(len(config.GPUS.split(',')))]
+    print("GPUS: " + str(gpus))
     print('=> Loading data ..')
+    start_time = time.time()
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     train_dataset = eval('dataset.' + config.DATASET.TRAIN_DATASET)(
@@ -102,6 +105,7 @@ def main():
         num_workers=config.WORKERS,
         pin_memory=True)
 
+    logger.info("Loading data took %.3f" % (time.time() - start_time))
     cudnn.benchmark = config.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = config.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = config.CUDNN.ENABLED
@@ -111,13 +115,11 @@ def main():
         config, is_train=True)
     
     logger.info("Setting data parallel with gpus: " + str(gpus))
-    #logger.info("Resetting the gpus array to [0, 1]")
-    gpus=[0]
     start_time = time.time()
     with torch.no_grad():
         model = torch.nn.DataParallel(model, device_ids=gpus).cuda()
-    #model = model.to(torch.device("cuda:0"))
-    logger.info("Took %.3f to set up data parallel" % (time.time() - start_time))
+    logger.info("Data parallel took %.3f" % (time.time() - start_time))
+    
     logger.info("Getting optimizer ... ")
     model, optimizer = get_optimizer(model)
 

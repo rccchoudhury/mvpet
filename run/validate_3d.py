@@ -7,6 +7,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,7 +19,6 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 from tensorboardX import SummaryWriter
 import argparse
-import os
 import pprint
 import logging
 import json
@@ -51,7 +53,7 @@ def main():
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
 
-    gpus = [int(i) for i in config.GPUS.split(',')]
+    gpus=[int(i) for i in range(len(config.GPUS.split(',')))]
     print('=> Loading data ..')
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

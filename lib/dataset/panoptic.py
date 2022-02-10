@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import cv2
 import glob
 import os.path as osp
 import numpy as np
@@ -15,6 +16,13 @@ import pickle
 import logging
 import os
 import copy
+
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
+import matplotlib.gridspec as gridspec
+from mpl_toolkits.mplot3d import Axes3D
+print("updated.")
 
 from dataset.JointsDataset import JointsDataset
 from utils.transforms import projectPoints
@@ -33,7 +41,7 @@ TRAIN_LIST = [
     '160906_band2',
     #'160906_band3',
 ]
-VAL_LIST = ['160906_pizza1', '160422_haggling1', '160906_ian5', '160906_band4']
+VAL_LIST = ['160906_pizza1']#, '160422_haggling1', '160906_ian5', '160906_band4']
 
 JOINTS_DEF = {
     'neck': 0,
@@ -72,6 +80,7 @@ LIMBS = [[0, 1],
          [12, 13],
          [13, 14]]
 
+colors = ['r', 'g', 'b', 'y', 'orange', 'brown', 'purple']
 
 class Panoptic(JointsDataset):
     def __init__(self, cfg, image_set, is_train, transform=None):
@@ -80,6 +89,7 @@ class Panoptic(JointsDataset):
         self.joints_def = JOINTS_DEF
         self.limbs = LIMBS
         self.num_joints = len(JOINTS_DEF)
+        self.ap_thresholds = np.arange(5, 65, 10)
 
         if self.image_set == 'train':
             self.sequence_list = TRAIN_LIST
@@ -248,14 +258,40 @@ class Panoptic(JointsDataset):
     def evaluate(self, preds):
         eval_list = []
         gt_num = self.db_size // self.num_views
-        assert len(preds) == gt_num, 'number mismatch'
-
+        #print("GT NUM: %d" % gt_num)
+        #print("PRED SIZE %d" % len(preds))
+        #assert len(preds) == gt_num, 'number mismatch'
+        #print("len preds: %d " % len(preds))
         total_gt = 0
-        for i in range(gt_num):
+
+        for i in range(len(preds)):
             index = self.num_views * i
             db_rec = copy.deepcopy(self.db[index])
             joints_3d = db_rec['joints_3d']
             joints_3d_vis = db_rec['joints_3d_vis']
+            # Try to plot the images from the DB.
+            image_paths = [db_entry['image'] for db_entry in self.db[index:index+self.num_views]]
+            #print(image_paths[0])
+            
+            # fig = plt.figure(figsize=(self.num_views * 3, self.num_views * 2))
+            # gs = gridspec.GridSpec(3, self.num_views, wspace=0, hspace=0)
+
+            # axes = []
+            # for j in range(self.num_views):
+            #     axes.append(fig.add_subplot(gs[0, j]))
+            # axes.append(fig.add_subplot(gs[1:, :], projection='3d'))
+
+            # axes[-1].set_zlim(0, 1500)
+            # axes[-1].set_ylim(-1250, 1000)
+            # axes[-1].set_xlim(-1000, 1500)
+
+            # # Plot the relevant images.
+            # for cam_idx in range(self.num_views):
+            #     #print(cam_idx)
+            #     image = cv2.imread(image_paths[cam_idx])
+            #     axes[cam_idx].imshow(image[:, :, ::-1])
+            #     axes[cam_idx].axis("off")
+            #     axes[cam_idx].margins(x=0, y=0)
 
             if len(joints_3d) == 0:
                 continue
@@ -268,6 +304,7 @@ class Panoptic(JointsDataset):
                     vis = gt_vis[:, 0] > 0
                     mpjpe = np.mean(np.sqrt(np.sum((pose[vis, 0:3] - gt[vis]) ** 2, axis=-1)))
                     mpjpes.append(mpjpe)
+
                 min_gt = np.argmin(mpjpes)
                 min_mpjpe = np.min(mpjpes)
                 score = pose[0, 4]
@@ -276,18 +313,31 @@ class Panoptic(JointsDataset):
                     "score": float(score),
                     "gt_id": int(total_gt + min_gt)
                 })
+                # Compute plot
+            #     for j1, j2 in LIMBS:
+            #         x_gt = [float(joints_3d[min_gt][j1, 0]), float(joints_3d[min_gt][j2, 0])]
+            #         y_gt = [float(joints_3d[min_gt][j1, 1]), float(joints_3d[min_gt][j2, 1])]
+            #         z_gt = [float(joints_3d[min_gt][j1, 2]), float(joints_3d[min_gt][j2, 2])]
+            #         axes[-1].plot(x_gt, y_gt, z_gt, c=colors[min_gt], ls='--', lw=1.5, marker='o', markerfacecolor='w', markersize=2,
+            #                 markeredgewidth=1)
+            #         x = [float(pose[j1, 0]), float(pose[j2, 0])]
+            #         y = [float(pose[j1, 1]), float(pose[j2, 1])]
+            #         z = [float(pose[j1, 2]), float(pose[j2, 2])]
+            #         axes[-1].plot(x, y, z, lw=1.5, marker='o', c=colors[min_gt], markerfacecolor='w', markersize=2,
+            #                 markeredgewidth=1)
 
-            total_gt += len(joints_3d)
+            # plt.savefig(osp.join("video_viz_panoptic", "image_%d.png" % i))
+            # plt.close(fig)
+            # total_gt += len(joints_3d)
 
-        mpjpe_threshold = np.arange(25, 155, 25)
         aps = []
         recs = []
-        for t in mpjpe_threshold:
+        for t in self.ap_thresholds:
             ap, rec = self._eval_list_to_ap(eval_list, total_gt, t)
             aps.append(ap)
             recs.append(rec)
 
-        return aps, recs, self._eval_list_to_mpjpe(eval_list), self._eval_list_to_recall(eval_list, total_gt)
+        return aps, recs, self._eval_list_to_mpjpe(eval_list, use_threshold=False), self._eval_list_to_recall(eval_list, total_gt)
 
     @staticmethod
     def _eval_list_to_ap(eval_list, total_gt, threshold):
@@ -318,13 +368,14 @@ class Panoptic(JointsDataset):
         return ap, recall[-2]
 
     @staticmethod
-    def _eval_list_to_mpjpe(eval_list, threshold=500):
+    def _eval_list_to_mpjpe(eval_list, threshold=500, use_threshold=True):
         eval_list.sort(key=lambda k: k["score"], reverse=True)
         gt_det = []
 
         mpjpes = []
         for i, item in enumerate(eval_list):
-            if item["mpjpe"] < threshold and item["gt_id"] not in gt_det:
+            threshold_bool = item["mpjpe"] < threshold if use_threshold else True
+            if threshold_bool and item["gt_id"] not in gt_det:
                 mpjpes.append(item["mpjpe"])
                 gt_det.append(item["gt_id"])
 
