@@ -40,6 +40,9 @@ pip-delete-this-directory.txt
 *.avi
 *.png
 
+# large files (should use LFS)
+*.pkl
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
