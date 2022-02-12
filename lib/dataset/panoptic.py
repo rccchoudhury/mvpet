@@ -257,6 +257,7 @@ class Panoptic(JointsDataset):
 
     def evaluate(self, preds):
         eval_list = []
+        log_data = []
         gt_num = self.db_size // self.num_views
         #print("GT NUM: %d" % gt_num)
         #print("PRED SIZE %d" % len(preds))
@@ -298,6 +299,8 @@ class Panoptic(JointsDataset):
 
             pred = preds[i].copy()
             pred = pred[pred[:, 0, 3] >= 0]
+            gts = []
+            all_mpjpes = []
             for pose in pred:
                 mpjpes = []
                 for (gt, gt_vis) in zip(joints_3d, joints_3d_vis):
@@ -307,6 +310,8 @@ class Panoptic(JointsDataset):
 
                 min_gt = np.argmin(mpjpes)
                 min_mpjpe = np.min(mpjpes)
+                gts.append(joints_3d[min_gt])
+                all_mpjpes.append(min_mpjpe)
                 score = pose[0, 4]
                 eval_list.append({
                     "mpjpe": float(min_mpjpe),
@@ -325,11 +330,20 @@ class Panoptic(JointsDataset):
             #         z = [float(pose[j1, 2]), float(pose[j2, 2])]
             #         axes[-1].plot(x, y, z, lw=1.5, marker='o', c=colors[min_gt], markerfacecolor='w', markersize=2,
             #                 markeredgewidth=1)
-
+            log_data_entry = {}
+            log_data_entry['frame_idx'] = i
+            log_data_entry['image_paths'] = image_paths
+            log_data_entry['pred'] = pred.tolist()
+            log_data_entry['gt'] = gts
+            log_data_entry['mpjpes'] = all_mpjpes
+            log_data.append(log_data_entry)
             # plt.savefig(osp.join("video_viz_panoptic", "image_%d.png" % i))
             # plt.close(fig)
             # total_gt += len(joints_3d)
-
+        logging.info("Finished sequence evaluation, saving to JSON.")
+        with open("test_dump_panoptics.json", 'w') as f:
+            json.dump(log_data, f)
+        logging.info("Succesffuly saved to JSON.")
         aps = []
         recs = []
         for t in self.ap_thresholds:

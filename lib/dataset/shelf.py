@@ -171,11 +171,12 @@ class Shelf(JointsDataset):
         return self.db_size // self.num_views
 
     def evaluate(self, preds, recall_threshold=500):
+        log_data = []
         datafile = os.path.join(self.dataset_root, 'actorsGT.mat')
         data = scio.loadmat(datafile)
         actor_3d = np.array(np.array(data['actor3D'].tolist()).tolist()).squeeze()  # num_person * num_frame
         num_person = len(actor_3d)
-        print("NUM PERSON : %d\n\n" % num_person)
+        #print("NUM PERSON : %d\n\n" % num_person)
         total_gt = 0
         match_gt = 0
 
@@ -184,8 +185,8 @@ class Shelf(JointsDataset):
         total_parts = np.zeros(num_person)
         alpha = 0.5
         bone_correct_parts = np.zeros((num_person, 10))
-        print(len(preds))
-        print(len(self.frame_range))
+        #print(len(preds))
+        #print(len(self.frame_range))
 
         for i, fi in enumerate(self.frame_range):
             #print("num person : % d " % num_person)
@@ -196,26 +197,30 @@ class Shelf(JointsDataset):
             pred = np.stack([self.coco2shelf3D(p) for p in copy.deepcopy(pred_coco[:, :, :3])])
             image_paths = [db_entry['image'] for db_entry in self.db[i*self.num_views:i*self.num_views+self.num_views]]
             #print(image_paths)
-            fig = plt.figure(figsize=(self.num_views * 3, self.num_views * 2))
-            gs = gridspec.GridSpec(3, self.num_views, wspace=0, hspace=0)
+            # fig = plt.figure(figsize=(self.num_views * 3, self.num_views * 2))
+            # gs = gridspec.GridSpec(3, self.num_views, wspace=0, hspace=0)
 
-            axes = []
-            for j in range(self.num_views):
-                axes.append(fig.add_subplot(gs[0, j]))
-            axes.append(fig.add_subplot(gs[1:, :], projection='3d'))
-            # Setup figure. 
+            # axes = []
+            # for j in range(self.num_views):
+            #     axes.append(fig.add_subplot(gs[0, j]))
+            # axes.append(fig.add_subplot(gs[1:, :], projection='3d'))
+            # # Setup figure. 
  
-            axes[-1].set_zlim(0, 1500)
-            axes[-1].set_ylim(-1250, 1000)
-            axes[-1].set_xlim(-1000, 1500)
+            # axes[-1].set_zlim(0, 1500)
+            # axes[-1].set_ylim(-1250, 1000)
+            # axes[-1].set_xlim(-1000, 1500)
 
-            for cam_idx in range(self.num_views):
-                #print(cam_idx)
-                image = cv2.imread(image_paths[cam_idx])
-                axes[cam_idx].imshow(image[:, :, ::-1])
-                axes[cam_idx].axis("off")
-                axes[cam_idx].margins(x=0, y=0)
-            
+            # for cam_idx in range(self.num_views):
+            #     #print(cam_idx)
+            #     image = cv2.imread(image_paths[cam_idx])
+            #     axes[cam_idx].imshow(image[:, :, ::-1])
+            #     axes[cam_idx].axis("off")
+            #     axes[cam_idx].margins(x=0, y=0)
+            all_mpjpes = []
+            gts = []
+            init_total_parts = total_parts.copy()
+            init_correct_parts = correct_parts.copy()
+
             for person in range(num_person):
                 gt = actor_3d[person][fi] * 1000.0
                 if len(gt[0]) == 0:
@@ -225,21 +230,22 @@ class Shelf(JointsDataset):
                 mpjpes = np.mean(np.sqrt(np.sum((gt[np.newaxis] - pred) ** 2, axis=-1)), axis=-1)
                 min_n = np.argmin(mpjpes)
                 min_mpjpe = np.min(mpjpes)
+                all_mpjpes.append(min_mpjpe)
                 if min_mpjpe < recall_threshold:
                     match_gt += 1
                 total_gt += 1
 
-                for j1, j2 in LIMBS:
-                    x_gt = [float(gt[j1, 0]), float(gt[j2, 0])]
-                    y_gt = [float(gt[j1, 1]), float(gt[j2, 1])]
-                    z_gt = [float(gt[j1, 2]), float(gt[j2, 2])]
-                    axes[-1].plot(x_gt, y_gt, z_gt, c=colors[min_n], ls='--', lw=1.5, marker='o', markerfacecolor='w', markersize=2,
-                            markeredgewidth=1)
-                    x = [float(pred[min_n, j1, 0]), float(pred[min_n, j2, 0])]
-                    y = [float(pred[min_n, j1, 1]), float(pred[min_n, j2, 1])]
-                    z = [float(pred[min_n, j1, 2]), float(pred[min_n, j2, 2])]
-                    axes[-1].plot(x, y, z, c=colors[min_n], lw=1.5, marker='o', markerfacecolor='w', markersize=2,
-                            markeredgewidth=1)
+                # for j1, j2 in LIMBS:
+                #     x_gt = [float(gt[j1, 0]), float(gt[j2, 0])]
+                #     y_gt = [float(gt[j1, 1]), float(gt[j2, 1])]
+                #     z_gt = [float(gt[j1, 2]), float(gt[j2, 2])]
+                #     axes[-1].plot(x_gt, y_gt, z_gt, c=colors[min_n], ls='--', lw=1.5, marker='o', markerfacecolor='w', markersize=2,
+                #             markeredgewidth=1)
+                #     x = [float(pred[min_n, j1, 0]), float(pred[min_n, j2, 0])]
+                #     y = [float(pred[min_n, j1, 1]), float(pred[min_n, j2, 1])]
+                #     z = [float(pred[min_n, j1, 2]), float(pred[min_n, j2, 2])]
+                #     axes[-1].plot(x, y, z, c=colors[min_n], lw=1.5, marker='o', markerfacecolor='w', markersize=2,
+                #             markeredgewidth=1)
 
                 for j, k in enumerate(limbs):
                     total_parts[person] += 1
@@ -259,9 +265,27 @@ class Shelf(JointsDataset):
                     correct_parts[person] += 1
                     bone_correct_parts[person, 9] += 1
             # Do the plot
-            plt.savefig(osp.join("video_viz_shelf", "image_%d.png" % fi))
-            plt.close(fig)
+            # plt.savefig(osp.join("video_viz_shelf", "image_%d.png" % fi))
+            # plt.close(fig)
+            # Log the per-frame data.
+            log_data_entry = {}
+            log_data_entry['frame_idx'] = i
+            log_data_entry['image_paths'] = image_paths
+            log_data_entry['pred'] = pred.tolist()
+            log_data_entry['gt'] = gts
+            log_data_entry['mpjpes'] = all_mpjpes
+            # Save the actor PCP at each frame
+            frame_actor_pcp = (correct_parts - init_correct_parts) / (total_parts - init_total_parts + 1e-8)
+            log_data_entry['actor_pcp'] = frame_actor_pcp.tolist()
+            log_data_entry['avg_pcp'] = np.mean(frame_actor_pcp[:3])
+            # plt.savefig(osp.join("video_viz_campus", "image_%d.png" % fi))
+            # plt.close(fig)
+            log_data.append(log_data_entry)
 
+        logging.info("Finished sequence evaluation, saving to JSON.")
+        with open("test_dump_shelf.json", 'w') as f:
+            json.dump(log_data, f)
+        logging.info("Succesffuly saved to JSON.")
 
         actor_pcp = correct_parts / (total_parts + 1e-8)
         avg_pcp = np.mean(actor_pcp[:3])

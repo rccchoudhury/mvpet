@@ -54,6 +54,7 @@ def main():
     logger.info(pprint.pformat(config))
 
     gpus=[int(i) for i in range(len(config.GPUS.split(',')))]
+    print("GPUS:  " + str(gpus))
     print('=> Loading data ..')
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

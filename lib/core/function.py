@@ -5,7 +5,7 @@ from __future__ import print_function
 import time
 import logging
 import os
-import copy
+import json
 
 import torch
 import numpy as np
@@ -164,7 +164,16 @@ def validate_3d(config, model, loader, output_dir):
 
                 save_debug_3d_cubes(config, meta[0], grid_centers, prefix2)
                 save_debug_3d_images(config, meta[0], pred, prefix2)
-
+    # Test saving this to an array. 
+    # pred_list = [p.tolist() for p in preds]
+    # # Save this to a numpy file. I think they're all the same length. 
+    # # For the other arrays, will need to go through and convert all the subararys to lists.
+    # #np.save("test_dump.npy", np.array(preds))
+    # print(pred_list)
+    # with open("test_dump.json", 'w') as outfile:
+    #     json.dump(pred_list, outfile)
+    logger.info("Finished running inference over validation set. ")
+    logger.info("Evaluating metrics. ")
     metric = None
     if 'panoptic' in config.DATASET.TEST_DATASET:
         aps, _, mpjpe, recall = loader.dataset.evaluate(preds)

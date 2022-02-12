@@ -5,7 +5,7 @@ CUDNN:
 BACKBONE_MODEL: ''
 MODEL: 'multi_person_posenet'
 DATA_DIR: ''
-GPUS: '5, 6'
+GPUS: '6'
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
 WORKERS: 4
