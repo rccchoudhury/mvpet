@@ -14,6 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
+lib/
 lib64/
 parts/
 sdist/
@@ -48,6 +49,9 @@ pip-delete-this-directory.txt
 htmlcov/
 .tox/
 .nox/
+# Unit test / coverage reports
+htmlcov/
+.tox/
 .coverage
 .coverage.*
 .cache
